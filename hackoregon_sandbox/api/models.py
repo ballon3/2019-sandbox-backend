@@ -114,7 +114,7 @@ class VisualizationTypes:
     UNDEFINED = "UN"
     DONUT_CHART = "DC"
     STACKED_BARS = "SB"
-    TEXT = "TX"    
+    TEXT = "TE"    
     DEFAULT = UNDEFINED
 
     Choices = (
@@ -134,23 +134,35 @@ class VisualizationTypes:
 """
 class FormatTypes:
     UNDEFINED = "UN"
-    DONUT_CHART = "DC"
-    STACKED_BARS = "SB"
-    TEXT = "TX"    
+    SENTENCE_CASE = "SC"
+    TITLE_CASE = "TC"
+    NUMERIC = "NU"
+    NUMERIC_SHORT = "NS"
+    DECIMAL = "DE"
+    PERCENT = "PE"
+    DOLLARS = "DO"
+    YEAR = "YE"
+    MONTH_YEAR = "MY"
     DEFAULT = UNDEFINED
 
     Choices = (
         (UNDEFINED, "UN"),
-        (DONUT_CHART, 'Donut Chart'),
-        (STACKED_BARS, 'Stacked Bars'),
-        (TEXT, 'Text'),     
+        (SENTENCE_CASE, 'Sentence Case'),
+        (TITLE_CASE, 'Title Case'),
+        (NUMERIC, 'Numeric'),
+        (NUMERIC_SHORT, 'Numeric Short'),
+        (DECIMAL, 'Decimal'),
+        (PERCENT, 'Percent'),
+        (DOLLARS, 'Dollars'),
+        (YEAR, 'Year'),
+        (MONTH_YEAR, 'Month Year'),       
     )
 
     def from_string(cls, string):
         for k,v in cls.Choices:
             if v == string:
                 return k
-        return VisualizationTypes.UNDEFINED
+        return FormatTypes.UNDEFINED
 
 
 """
@@ -174,6 +186,8 @@ class DateGranularities:
             if v == string:
                 return k
         return DateGranularities.UNDEFINED      
+
+
         
 class IconMapping(models.Model):
     x = models.IntegerField()
@@ -186,13 +200,16 @@ class ColorArea(models.Model):
     color = models.CharField(max_length=50)
     area = models.CharField(max_length=50)
 
+"""
+"""
+
 class Map(models.Model):
     mapType = models.CharField(max_length=2, choices=MapTypes.Choices, default=MapTypes.DEFAULT)
     civicColor = models.CharField(max_length=50)
     opacity = models.DecimalField(max_digits=5, decimal_places=2)
     scaleType = models.ForeignKey(ColorArea, on_delete=models.CASCADE, related_name='scaleType')
     fieldName = models.ForeignKey(ColorArea, on_delete=models.CASCADE, related_name='fieldName')
-    dataRange = ArrayField(ArrayField(models.IntegerField()))
+    dataRange = ArrayField(ArrayField(models.CharField(max_length=50)))
     colorRange = ArrayField(ArrayField(models.IntegerField()))
     radius = models.IntegerField()
     radiusScale = models.IntegerField()
@@ -200,37 +217,69 @@ class Map(models.Model):
     squareSize = models.IntegerField()
     iconSize = models.IntegerField()
     iconAtlas = models.CharField(max_length=50)
-    iconMapping = models.ForeignKey(IconMapping, on_delete=models.CASCADE)
+    #iconMapping = models.ForeignKey(IconMapping, on_delete=models.CASCADE)
 
-class VisualizationEntityObject(models.Model):
+"""
+"""
+
+class DashboardEntityObject(models.Model):
     visualization_type = models.CharField(max_length=2, choices=VisualizationTypes.Choices, default=VisualizationTypes.DEFAULT)
     field_name = models.CharField(max_length=50)
     label = models.CharField(max_length=50)
     format = models.CharField(max_length=2, choices=FormatTypes.Choices, default=FormatTypes.DEFAULT)
 
-class VisualizationEntity(models.Model):
-    primary = models.ForeignKey(VisualizationEntityObject, on_delete=models.CASCADE, related_name='primary')
-    secondary = models.ForeignKey(VisualizationEntityObject, on_delete=models.CASCADE, related_name='secondary')
+"""
+"""
+
+class Dashboard(models.Model):
+    primary = models.ForeignKey(DashboardEntityObject, on_delete=models.CASCADE, related_name='primary')
+    secondary = models.ForeignKey(DashboardEntityObject, on_delete=models.CASCADE, related_name='secondary')
+
+"""
+"""
+
+class TooltipEntityObject(models.Model):
+    field_name = models.CharField(max_length=50)
+    label = models.CharField(max_length=50)
+    format = models.CharField(max_length=2, choices=FormatTypes.Choices, default=FormatTypes.DEFAULT)
+
+"""
+"""
+
+class Tooltip(models.Model):
+    primary = models.ForeignKey(TooltipEntityObject, on_delete=models.CASCADE, related_name='primary')
+    secondary = models.ForeignKey(TooltipEntityObject, on_delete=models.CASCADE, related_name='secondary')
+
+"""
+"""
 
 class Dates(models.Model):
-    field_name = models.CharField(max_length=50)
-    granularity = models.CharField(max_length=2, choices=DateGranularities.Choices, default=DateGranularities.DEFAULT)
-    default_filter = models.CharField(max_length=50)
-    min = models.CharField(max_length=50)
-    max = models.CharField(max_length=50)
-
-class Visualization(models.Model):
-    map =  models.ForeignKey(Map, on_delete=models.CASCADE)
-    dashboard = models.ForeignKey(VisualizationEntity, on_delete=models.CASCADE, related_name='dashboard')
-    tooltip = models.ForeignKey(VisualizationEntity, on_delete=models.CASCADE, related_name='tooltip')
-    dates = models.ForeignKey(Dates, on_delete=models.CASCADE)
-
+    dateFieldName = models.CharField(max_length=50)
+    dateGranularity = models.CharField(max_length=2, choices=DateGranularities.Choices, default=DateGranularities.DEFAULT)
+    defaultDateFilter = models.CharField(max_length=50)
+    minDate = models.CharField(max_length=50)
+    maxDate = models.CharField(max_length=50)
 
 """
 """
+
 class Tag(models.Model):
     name = models.CharField(max_length=50)
     value = models.CharField(max_length=50)
+
+"""
+"""
+
+class Visualization(models.Model):
+    map =  models.ForeignKey(Map, on_delete=models.CASCADE)
+    dashboard = models.ForeignKey(Dashboard, on_delete=models.CASCADE, related_name='dashboard')
+    tooltip = models.ForeignKey(Tooltip, on_delete=models.CASCADE, related_name='tooltip')
+    dates = models.ForeignKey(Dates, on_delete=models.CASCADE)
+#    1.1.8 visualizations: map
+#    1.1.9 visualizations: dashboard
+#    1.1.10 visualizations: tooltip
+#    1.1.11 visualizations: dates
+
 
 """
 """
@@ -238,13 +287,21 @@ class Layer(models.Model):
     created = models.DateTimeField(null=True)
     modified = models.DateTimeField(auto_now=True)    
     name = models.CharField(max_length=50, unique=True)
-    data_endpoint = models.URLField()
-    metadata_endpoint = models.URLField()
+    data = models.URLField()
+    metadata = models.URLField()
     rating = models.CharField(max_length=2, choices=Ratings.Choices, default=Ratings.DEFAULT)
     visualization = models.ForeignKey(Visualization, on_delete=models.CASCADE)
     creator = models.CharField(max_length=50)
     aggregation = models.CharField(max_length=2, choices=AggregationFlags.Choices, default=AggregationFlags.DEFAULT)    
     tags = models.ManyToManyField(Tag)    
+#  1.1 📗 Layer
+#    1.1.1 displayName
+#    1.1.2 data
+#    1.1.3 meta
+#    1.1.4 rating
+#    1.1.5 association
+#    1.1.6 tags
+#    1.1.7 aggregationFlag
 
 
 """
